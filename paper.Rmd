@@ -49,7 +49,7 @@ This paper investigates the extent of the immigrant wage gap in Canada and how i
 
 ```{r}
 # Reading the data
-cis <- read_csv("cis2022/data/cis2022.csv", show_col_types = FALSE) |>
+cis <- read_csv("https://raw.githubusercontent.com/SameeckBhatia/Immigrant-Wage-Gap/refs/heads/main/cis2022/data/cis2022.csv", show_col_types = FALSE) |>
   as.data.frame()
 ```
 
