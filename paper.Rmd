@@ -1,0 +1,193 @@
+---
+title: "Economic Integration in Canada: The Impact of Immigration Duration on Wage Gaps Between Natives and Non-Natives"
+abstract: "This paper explores wage disparities between immigrants and native-born Canadians, focusing on how wage gaps evolve with time spent in the country. Using data from the 2022 Canadian Income Survey, we estimate an OLS model with log-transformed hourly wages. Results show that immigrants earn about 19.4% less than natives, on average. However, the gap narrows as time since immigration increases, nearly disappearing after 30–39 years. The findings suggest that underpayment may be linked to unmeasured factors such as foreign credential recognition and language skills. These results highlight the importance of targeted policies to improve immigrant wage outcomes over time."
+header-includes:
+  - \usepackage{setspace}\doublespacing
+author: "Sameeck Bhatia"
+date: "`r Sys.Date()`"
+output: 
+  bookdown::pdf_document2:
+    toc: false
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+# Uncomment the below lines and run the chunk to install packages
+# install.packages("tidyverse")
+# install.packages("stargazer")
+# install.packages("knitr")
+```
+
+```{r}
+# Loading required libraries
+library(tidyverse)
+library(stargazer)
+library(knitr)
+```
+
+# Introduction
+
+Over just the past decade, Canada has welcomed over one million immigrants from a wide range of countries [@statcan2022], facilitated by the Immigration, Refugees and Citizenship Canada (IRCC) agency. Among the various immigration pathways, the skilled-worker program has emerged as the most significant, aiming to attract individuals with foreign work experience who are of working age. This policy responds to Canada’s demographic challenge of an aging population by seeking to replenish the labour force with qualified workers. Most immigrants arrive as permanent residents and tend to settle in major urban centres such as Toronto, Vancouver, and Montreal [@statcan2021], where wage opportunities are relatively high. However, despite their qualifications and experience, many immigrants face challenges integrating into the Canadian labour market. 
+
+One of the most persistent issues is the immigrant wage gap, which is a form of hidden economic penalty that prevents newcomers from earning on par with their Canadian-born counterparts. This phenomenon is not unique to Canada, as similar wage disparities have been documented in other high-income countries such as the United States [@stewart] and Germany [@ingwersen]. Many reasons have been cited for this gap, but, most prominently, it is the difference in language proficiency and the lack of recognition for foreign credentials that are driving factors [@conference].
+
+This paper investigates the extent of the immigrant wage gap in Canada and how it evolves as immigrants integrate into the workforce. The structure of the paper is as follows: Section 2 reviews existing literature on the wage gap and immigrant labour market outcomes. Section 3 describes the dataset used, drawn from Statistics Canada, while Section 4 outlines the empirical strategy, which employs an Ordinary Least Squares (OLS) model to estimate the wage gap. The results of the analysis are presented in Section 5, followed by a broader discussion of the implications for immigration policy and labour market equity in Section 6.
+
+# Literature Review
+
+@lamb present a framework that examines the rise of non-standard employment (such as part-time and temporary work) in Canada over the past few decades. The study aims to explore the wage disparities between standard and non-standard employment, highlighting the prevalence of low wages within non-standard work, which is often viewed as a stepping stone to full-time, permanent positions. The research emphasizes that non-standard employment has a particularly significant impact on minority groups. Lamb’s analysis draws on data from the Labour Force Survey spanning from 2006 to 2016 and incorporates variables related to human capital, personal characteristics, employment, and geographical factors. The findings reveal that immigrants face a 30% higher likelihood of being employed in non-standard jobs compared to their Canadian-born counterparts. Additionally, the study identifies a persistent 19% wage gap between immigrants and natives across both genders. Furthermore, Lamb’s results suggest that immigrants experience a 0.5% increase in their hourly wage for each year spent in Canada.
+
+@ingwersen develop a model that divides the population into three groups (natives, naturalized immigrants, and foreigners) to analyze wage gaps in Germany. The analysis draws on data from 1994 to 2015 and uses quantile regression along with a recentered influence function to estimate an endowment gap, which is a recalculated wage gap. The model incorporates various cultural and economic variables, with the study finding that these factors have the most significant impact on the wage gap. Additionally, the model considers the foreign qualifications of individuals. Ingwersen’s findings reveal a wage gap of 14 to 18% between foreigners and natives, while the gap between naturalized immigrants and foreigners ranges from 10 to 16%, both in favor of natives. The wage gap is most significantly explained among higher wage deciles, although unexplained wage differences remain among lower deciles.
+
+@ansah examine the wage gap between immigrant and Canadian-born workers across both the private and public sectors, along with various subsectors, building upon prior literature in the field. The study discusses immigration as a strategy to address the challenges posed by Canada’s aging population. Data for the analysis is sourced from the Canadian Labour Force Survey master files covering the period from 2006 to 2018. To refine the analysis, the study utilizes NAICS codes to categorize sub-sectors. The Blinder-Oaxaca decomposition method is employed to assess the wage gap. The results reveal that Canadian-born workers earn a 12% wage premium over their non-Canadian counterparts in the private sector, while the gap narrows to 10% in the public sector, with an average differential of 6% across federal, provincial, and municipal levels. Interestingly, 80% of the wage differential in the private sector remains unexplained, suggesting the possibility of discrimination or unrecognized disparities in the valuation of foreign credentials.
+
+# Data
+
+```{r}
+# Reading the data
+cis <- read_csv("cis2022/data/cis2022.csv", show_col_types = FALSE) |>
+  as.data.frame()
+```
+
+This paper analyzes data sourced from the Canadian Income Survey [@cis2022], which, in turn, sources some variables from the Labour Force Survey [@lfs2022]. Although the reference year for the data is 2022, the collection period spans from January 2023 to July 2023. This was done by Statistics Canada to align responses with the CRA tax year. This dataset includes a comprehensive range of information, covering individual, economic household, and census household-level data. In addition to income, tax, and labour data, the dataset also has demographic and geographic variables.
+
+All data cleaning and transformation for this paper was carried out using the Tidyverse package [@tidyverse] in R [@R]. The raw dataset contains over 96,000 observations and 210 variables. However, only the most relevant variables were selected for analysis (highest education level, immigrant status, sex, etc.). The focus was on individuals within the working-age population, specifically those aged between 15 and 64 inclusive. Paid employees with wages above zero were selected, excluding observations with negative wage values. While there were many missing values and non-responses, some of the missing data were associated with valid skips, which occur when a question is not applicable to a respondent (e.g., employment status for students).
+
+The variables in the data were transformed to enhance model clarity and consistency. The `province` variable was mapped from province codes to their corresponding abbreviations, and refactored to make Ontario the baseline province. Additionally, the variables `pop_level` and `age_level` were re-scaled to a 1-5 and 1-10 range, respectively, to standardize their measurement. The `female` and `full_time` variables were converted into binary indicators, where 1 represents the individual being female or employed full-time during the reference year. The `imm_length_level` variable was also adjusted so that natives were assigned a value of 0, while remaining the same for non-natives. Lastly, a new variable `hourly_wage` was created to better measure earnings by dividing total wages earned by the total number of hours worked in the reference year. 
+
+```{r tab1, results='asis'}
+# Cleaning and transforming the data
+cis_clean <- cis |>
+  # Converting data types
+  mutate(PROV = as.character(PROV),
+         USZGAP = as.numeric(USZGAP),
+         AGEGP = as.numeric(AGEGP)) |>
+  # Filtering data for valid observations
+  filter(USZGAP %in% c(1, 2, 3, 6, 9),
+         AGEGP %in% 4:13,
+         !CMPHI %in% c(6, 9),
+         !SCSUM %in% c(30, 99),
+         FPDWK == 1,
+         IMMST != 9,
+         WGSAL > 1) |>
+  # Selecting relevant variables
+  select("PROV", "USZGAP", "AGEGP", "SEX", 
+         "HLEV2G", "SCSUM", "ALHRWK", "WGSAL",
+         "IMMST", "YRIMMG") |>
+  # Refactoring variables
+  mutate(PROV = case_when(
+    PROV == 10 ~ "NL",
+    PROV == 11 ~ "PE",
+    PROV == 12 ~ "NS",
+    PROV == 13 ~ "NB",
+    PROV == 24 ~ "QC",
+    PROV == 35 ~ "ON",
+    PROV == 46 ~ "MB",
+    PROV == 47 ~ "SK",
+    PROV == 48 ~ "AB",
+    PROV == 59 ~ "BC"),
+    PROV = relevel(as.factor(PROV), "ON")) |>
+  mutate(USZGAP = case_when(USZGAP == 6 ~ 4, USZGAP == 9 ~ 5, TRUE ~ USZGAP),
+         USZGAP = USZGAP - 1,
+         AGEGP = AGEGP - 4,
+         HLEV2G = HLEV2G - 1,
+         SEX = ifelse(SEX == 1, 0, 1),
+         SCSUM = ifelse(SCSUM %in% c(12, 22), 0, 1),
+         hourly_wage = round(WGSAL / ALHRWK, 2),
+         IMMST = ifelse(IMMST == 2, 0, 1),
+         YRIMMG = case_when(YRIMMG == 6 ~ 0, TRUE ~ YRIMMG)) |>
+  # Removing outliers
+  filter(hourly_wage > quantile(hourly_wage, 0.01),
+         hourly_wage < quantile(hourly_wage, 0.99))
+
+# Renaming columns
+colnames(cis_clean) <- c("province", "pop_level", "age_level", "female", 
+                          "highest_ed_level", "full_time", "hours", "wages",
+                          "imm", "imm_length_level", "hourly_wage")
+
+# Printing summary statistics
+stargazer(cis_clean, header = FALSE, digits = 2, digit.separator = ",",
+          median = TRUE, title = "Summary Statistics", label = "tab:tab1")
+```
+
+Table \@ref(tab:tab1) indicates a fairly representative sample of the population. The average and median population levels suggest that respondents predominantly come from areas with populations ranging from 100,000 to 500,000 people, with 50% living in areas above 500,000. The median age is consistent with broader population estimates, falling within the 40-44 years range. Distribution of sex is balanced, with 50% women and 50% men, meaning there is proper representation. The majority of respondents have completed post-secondary education, with the average education level slightly above non-university certificates or diplomas. Summary statistics for the variable `full_time` shows that 86% of respondents have worked full-time at some point in the reference year, and assuming 52 paid weeks, the median workweek is approximately 37.5 hours, aligning with standard working hours in Canada. The median annual wage of $57,500 is higher than national estimates, although it has considerable variability. Immigrant respondents account for 19% of the sample, which is lower than national figures, potentially underrepresenting immigrant populations. Finally, both the maximum and minimum hourly wages fall within reasonable ranges, reinforcing the validity of the wage data.
+
+```{r fig1, fig.width=4, fig.height=2.5, fig.align='center', fig.cap='Distribution of Hourly Wages'}
+# Plotting the dependent variable
+cis_clean |>
+  ggplot(aes(x = hourly_wage)) +
+  geom_histogram(fill = "tan", color = "black", binwidth = 10, center = 5) + 
+  labs(x = "Wage ($/hr)", y = "Count")
+```
+
+Figure \@ref(fig:fig1) shows a heavy right skew in the distribution of hourly wages, with the most common values in the 20-30 and 30-40 wage ranges. There are around 1,000 observations in the 0-10 range, which is small but worth considering. Frequency decreases as hourly wages increase, and the distribution's shape makes estimating effects for high-wage earners more challenging.
+
+# Model
+
+The selected model is OLS with a log transformation applied. This transformation corrects the violation of the OLS assumption that the response variable (`hourly_wage`) is not normally distributed. Additionally, the log transformation offers a more convenient way to measure differences, as the estimates provide a way to represent the fixed effects as percentages rather than dollar values. The following equation represents the model used:
+
+$$ 
+\ln(\text{hourly\_wage}) = \beta_0 + \beta_1 X + \beta_2 \text{(imm\_length\_level)} + \beta_3 \text{(imm)} + \epsilon,
+$$
+
+where:
+
+- ln(`hourly_wage`) = The natural logarithm of `hourly_wage`.
+- $\beta_0$ = The intercept term, representing the baseline expected log-hourly wage when all predictors are at their reference levels.
+- $X$ = A vector of control variables. (Listed in Table \@ref(tab:tab2))
+- $\beta_1$ = The vector of coefficients corresponding to the control variables in the vector $X$.
+- `imm_length_level` = A categorical variable indicating how long the individual has been an immigrant.
+- $\beta_2$ = The coefficient for the independent variable `imm_length_level`.
+- `imm` = A binary variable indicating whether the individual is an immigrant.
+- $\beta_3$ = The coefficient for the independent variable `imm`.
+- $\epsilon$ = The error term.
+
+# Results
+
+```{r tab2, results='asis'}
+# Fitting models
+model1 <- lm(data = cis_clean, formula = log(hourly_wage) ~ province + 
+              pop_level + age_level + female + full_time + imm)
+
+model2 <- lm(data = cis_clean, formula = log(hourly_wage) ~ province + 
+              pop_level + age_level + female + full_time + 
+               highest_ed_level + imm)
+
+model3 <- lm(data = cis_clean, formula = log(hourly_wage) ~ province + 
+              pop_level + age_level + female + full_time + 
+               highest_ed_level + imm_length_level + imm)
+
+# Mapping coefficients to the natural scale
+coef1 <- exp(coef(model1))-1
+coef2 <- exp(coef(model2))-1
+coef3 <- exp(coef(model3))-1
+
+# Printing model results
+stargazer(model1, model2, model3, coef = list(coef1, coef2, coef3),
+          dep.var.labels = c("ln(Hourly Wage)"), intercept.bottom = FALSE, 
+          header = FALSE, keep.stat = c("rsq", "ser"), font.size = "small",
+          digits = 3, digit.separator = ",", title = "Model Summary",
+          label = "tab:tab2")
+```
+
+Table \@ref(tab:tab2) presents the summary of three regression models, with coefficients exponentiated to reflect percentage differences. Model 1 includes all control variables except for highest education level and immigration length level. Model 2 adds the highest education level control but omits immigration length level. Model 3 includes all variables and controls as outlined in Section 4.
+
+In Model 1, without controlling for highest education level, non-native individuals earn approximately 3.8% less than natives on average. Although modest, this difference is statistically significant and supports the presence of a wage gap noted in previous studies. However, when compared to Model 3, where all controls are included, this gap increases by about 16 percentage points. This suggests omitted variable bias in Model 1. Since highest education level is positively correlated with both immigrant status and wages—particularly due to high-skilled immigration programs—the omission leads to a positive bias, causing the wage gap to be underestimated. When comparing Model 2 and Model 3, the addition of immigration length level does not substantially change the overall model fit. However, the coefficient on immigrant status still shifts by about 10 percentage points. This difference is not due to omitted variable bias in the traditional sense, as immigration length level is defined only for immigrants. Instead, its inclusion allows for contrasts between recent and long-term immigrants, changing the interpretation of the immigration status coefficient rather than correcting a bias.
+
+Model 3 includes controls for province, age level, sex, and other relevant variables. In this model, the coefficient on `imm` is approximately -19.4%, indicating that, all else equal, immigrants earn about 19.4% less than native-born Canadians. This result is statistically and economically significant and closely matches the estimate reported in @lamb. The wage gap suggests immigrants are underpaid. While workplace discrimination is a possible factor, the literature more commonly attributes this to foreign credential recognition and language barriers, which are not included in the model and may contribute to the unexplained variation. The coefficient on `imm_length_level` is positive, around 5%, suggesting that immigrant wages increase over time, likely due to growing Canadian work experience. With `imm_length_level` at 4 (representing 30 to 39 years since arrival), the wage gap narrows to about 0.6%. At this stage, immigrants nearly reach parity with natives and may even have a slight wage advantage.
+
+# Discussion
+
+The persistence of a wage gap between immigrants and native-born Canadians suggests that integration barriers are structural rather than temporary. Although the gap narrows over time, reaching near parity after 30–39 years, the delayed convergence limits the economic potential of newcomers in their most productive years. This lag points to shortcomings in credential recognition and language support. Policymakers should focus on accelerating economic integration by investing in programs that improve the transferability of foreign credentials and expand access to sector-specific language training. Additionally, stronger partnerships with employers to recognize international experience could reduce underemployment among recent immigrants. These efforts not only promote fairness but also enhance Canada’s return on immigration as a tool for labour market sustainability.
+
+The results above have a few limitations related to both data and methodology. Although the data is from the 2022 tax year, it may not reflect changes in the labour market or immigration policy that occurred in 2023. Additionally, the dataset lacks key variables such as sector of employment, race, and language proficiency, which are important for capturing wage differences more accurately. Some variables—like years since immigration or population size—are categorized despite being naturally continuous, reducing analytical precision. Methodologically, the use of Ordinary Least Squares (OLS) is prone to attenuation bias, which may lead to underestimation of the wage gap, as seen in Model 3 of Table \@ref(tab:tab2). The inclusion of approximately seven control variables may also contribute to smaller observed wage gaps by overcontrolling the model. These factors should be considered when interpreting the results and their implications.
+
+A potential avenue for further analysis could involve using inflation-adjusted GDP per capita for the time and region from which an individual emigrated. This variable is relevant as it provides valuable insight into the standard of living at that particular time, which is likely a strong determinant for an individual’s decision to emigrate. As such, it meets the first requirement for a valid instrument: relevance. Additionally, the instrument does not directly affect wages except through its impact on the individual’s immigration status. This meets the second requirement of a valid instrument: exogeneity. Given Canada’s stringent labor regulations, which reduce the likelihood of discrimination based on immigrant status, this variable would not introduce direct bias into the analysis. However, public-use microdata, like the data used in this study, often lacks this type of detailed information. To ensure robustness, it is important that future models use more comprehensive sources, such as the Canadian Income Survey and Labour Force Survey master files, as utilized in @lamb.
+
+\newpage
+
+# References
